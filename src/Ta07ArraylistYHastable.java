@@ -8,7 +8,7 @@ public class Ta07ArraylistYHastable {
     static ArrayList<String> nombresAlumnos = new ArrayList<>();//Lista para almacenar nombres de alumnos
     static Hashtable<String, ArrayList<Double>> diccionarioNotas = new Hashtable<>();//Diccionario que relaciona nombres de alumnos con sus notas
     static Hashtable<String, Double> stockProductos = new Hashtable<>();//Almacena nombres de productos y sus precios
-    
+    static Hashtable<String, Integer> stockCantidad = new Hashtable<>();//Almacena nombre de produto con la cantidad de productos
 	public static void main(String[] args) {
         boolean salir = false;
         while (!salir) {
@@ -28,7 +28,7 @@ public class Ta07ArraylistYHastable {
                 	agregarProducto();
                     break;
                 case "5":
-                	listarProductos(stockProductos);
+                	listarProductos(stockProductos,stockCantidad);
                     break;
                 case "6":
                 	consultarPrecio(stockProductos);
@@ -122,24 +122,57 @@ public class Ta07ArraylistYHastable {
 	• Cambio a devolver al cliente.
 	*/
 	public static void ejercicio2() {
-        double totalVenta = 0;
-        boolean continuarComprando = true;
-        while (continuarComprando) {
-            listarProductos(stockProductos);
-            String productoCompra = JOptionPane.showInputDialog("Nombre del producto a comprar (0 para pagar): ");
-            if (productoCompra.equals("0")) {
-                continuarComprando = false;
-            } else if (stockProductos.containsKey(productoCompra)) {
-                double precioProducto = stockProductos.get(productoCompra);
-                String cantidadStr = JOptionPane.showInputDialog("Dime la cantidad de " + productoCompra + " a comprar: ");
-                double cantidad = Double.parseDouble(cantidadStr);
-                double subtotal = cantidad * precioProducto;
-                totalVenta += subtotal;
-                JOptionPane.showMessageDialog(null, "Subtotal de " + productoCompra + ": " + subtotal + "€");
-            } else {
-                JOptionPane.showMessageDialog(null, "Producto no encontrado");
-            }
-        }
+		double totalVenta = 0;
+	    boolean continuarComprando = true;
+
+	    while (continuarComprando) {
+	        listarProductos(stockProductos,stockCantidad);
+	        String productoCompra = JOptionPane.showInputDialog("Nombre del producto a comprar (0 para pagar): ");
+
+	        if (productoCompra.equals("0")) {
+	            continuarComprando = false;
+	        } else if (stockProductos.containsKey(productoCompra)) {
+	            double precioProducto = stockProductos.get(productoCompra);
+
+	            // Verificar si hay suficiente stock
+	            if (stockCantidad.containsKey(productoCompra)) {
+	                int cantidadEnStock = stockCantidad.get(productoCompra);
+	                if (cantidadEnStock <= 0) {
+	                    JOptionPane.showMessageDialog(null, "No hay suficiente stock de " + productoCompra);
+	                    continue;
+	                }
+	            } else {
+	                JOptionPane.showMessageDialog(null, "No hay suficiente stock de " + productoCompra);
+	                continue;
+	            }
+
+	            String cantidadStr = JOptionPane.showInputDialog("Dime la cantidad de " + productoCompra + " a comprar: ");
+	            double cantidad = Double.parseDouble(cantidadStr);
+
+	            // Verificar si hay suficiente stock
+	            if (stockCantidad.containsKey(productoCompra)) {
+	                int cantidadEnStock = stockCantidad.get(productoCompra);
+	                if (cantidad > cantidadEnStock) {
+	                    JOptionPane.showMessageDialog(null, "No hay suficiente stock de " + productoCompra);
+	                    continue;
+	                }
+	            }
+
+	            double subtotal = cantidad * precioProducto;
+	            totalVenta += subtotal;
+
+	            // Reducir la cantidad en stock después de la compra
+	            if (stockCantidad.containsKey(productoCompra)) {
+	                int cantidadEnStock = stockCantidad.get(productoCompra);
+	                cantidadEnStock -= cantidad;
+	                stockCantidad.put(productoCompra, cantidadEnStock);
+	            }
+
+	            JOptionPane.showMessageDialog(null, "Subtotal de " + productoCompra + ": " + subtotal + "€");
+	        } else {
+	            JOptionPane.showMessageDialog(null, "Producto no encontrado");
+	        }
+	    }
         double iva = totalVenta * 0.21;
         double totalConIVA = totalVenta + iva;
         JOptionPane.showMessageDialog(null, "IVA aplicado (21%): " + iva);
@@ -162,21 +195,28 @@ public class Ta07ArraylistYHastable {
 	public static void agregarProducto() {	    
 	    for (int i = 0; i < 10; i++) {
 	        String producto = JOptionPane.showInputDialog("Nombre del producto: ");
-	        String precioStr = JOptionPane.showInputDialog("Dime el precio de "+producto+":");
+	        String precioStr = JOptionPane.showInputDialog("Dime el precio de " + producto + ":");
 	        double precio = Double.parseDouble(precioStr);
+	        String cantidadStr = JOptionPane.showInputDialog("Cantidad en stock de " + producto + ": ");
+	        int cantidad = Integer.parseInt(cantidadStr);
 	        stockProductos.put(producto, precio);
+	        stockCantidad.put(producto, cantidad);
 	    }
 	}
+
 	
-	public static void listarProductos(Hashtable<String, Double> stockProductos) {
-        StringBuilder lista = new StringBuilder("Listado de productos:\n");//Y el string builder: https://www.aprenderaprogramar.com/index.php?option=com_content&view=article&id=961:stringbuffer-stringbuilder-java-ejemplo-diferencias-entre-clases-criterios-para-elegir-metodos-cu00914c&catid=58&Itemid=180
-        Set<String> productos = stockProductos.keySet();//La funcion de keySet la encontre aquí: http://www.tutorialspoint.com/java/util/hashmap_keyset.htm
-        for (String producto : productos) {// Con el : es como decir toda la lista de productos recorre producto por porducto
-            double precio = stockProductos.get(producto);
-            lista.append(producto).append(": ").append(precio).append("\n");//Con esto muestro todos los productos y añado el precio para asi ir enseñando toda la lista estando en el bucle
-        }
-        JOptionPane.showMessageDialog(null, lista.toString());
-    }
+	public static void listarProductos(Hashtable<String, Double> stockProductos, Hashtable<String, Integer> stockCantidad) {
+	    StringBuilder lista = new StringBuilder("Listado de productos:\n");
+	    Set<String> productos = stockProductos.keySet();
+	    for (String producto : productos) {
+	        double precio = stockProductos.get(producto);
+	        int cantidad = stockCantidad.getOrDefault(producto, 0); // Obtiene la cantidad o 0 si no existe
+
+	        lista.append(producto).append(": Precio - ").append(precio).append("€, Stock - ").append(cantidad).append("\n");
+	    }
+	    JOptionPane.showMessageDialog(null, lista.toString());
+	}
+
 	
 	public static void consultarPrecio(Hashtable<String, Double> stockProductos) {
         String productoConsulta = JOptionPane.showInputDialog("Dime el nombre del producto a consultar: ");
